@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -23,14 +24,17 @@ func generateRandomString(length int) string {
 
 func handlePost(w http.ResponseWriter, r *http.Request) {
 
-	theURL := r.Header.Get("URL")
-	host := r.Host
-	randomString := generateRandomString(5)
+	body, _ := io.ReadAll(r.Body)
 
-	urlKeys.Store(randomString, theURL)
-	finalURL := host + "/" + randomString
-	w.Header().Set("URL", finalURL)
-	w.WriteHeader(http.StatusCreated)
+	if string(body) != "" {
+		randomString := generateRandomString(5)
+		theURL := string(body)
+		urlKeys.Store(randomString, theURL)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("URL", theURL)
+		w.WriteHeader(201)
+		w.Write([]byte("http://localhost:8080/" + randomString))
+	}
 
 }
 
