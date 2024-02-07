@@ -4,7 +4,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"strings"
 	"sync"
 )
 
@@ -45,17 +44,11 @@ func handleGet(wr http.ResponseWriter, rr *http.Request) {
 	if originalURL, ok := urlKeys.Load(urlID); ok {
 
 		str := originalURL.(string)
-
-		if strings.Contains(str, "https://") {
-			wr.Header().Set("Location", str)
-			wr.WriteHeader(307)
-		} else {
-			newStr := "https://" + str
-			wr.Header().Set("Location", newStr)
-			wr.WriteHeader(307)
-		}
+		wr.Header().Set("Location", str)
+		wr.WriteHeader(307)
 
 	} else {
+
 		wr.Header().Set("Location", "URL not found")
 		wr.WriteHeader(400)
 
