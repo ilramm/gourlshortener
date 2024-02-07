@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"net/http"
+	"sync"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-var urlKeys map[string]string
+var urlKeys sync.Map
 
 func generateRandomString(length int) string {
 
@@ -26,36 +26,29 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
 	randomString := generateRandomString(5)
 
-	urlKeys = make(map[string]string, 10)
-	urlKeys[randomString] = theURL
-
+	urlKeys.Store(randomString, theURL)
 	finalURL := host + "/" + randomString
 	w.Header().Set("URL", finalURL)
-	fmt.Fprintf(w, "%s", urlKeys[randomString])
 	w.WriteHeader(http.StatusCreated)
 
 }
 
 func handleGet(wr http.ResponseWriter, rr *http.Request) {
-	originalGetURL := rr.URL.String()
-	urlID := originalGetURL[1:]
-	originalURL := urlKeys[urlID]
 
-	// Debugging statements
-	fmt.Fprintf(wr, "originalGetURL: %s, urlID: %s, originalURL: %s\n", originalGetURL, urlID, originalURL)
+	urlID := rr.URL.String()[1:]
 
-	// Check if originalURL is empty
-	if originalURL == "" {
-		http.Error(wr, "Original URL not found", http.StatusNotFound)
-		return
+	if originalURL, ok := urlKeys.Load(urlID); ok {
+
+		str := originalURL.(string)
+		//wr.Write([]byte(str))
+		//wr.WriteHeader(http.StatusCreated)
+		http.Redirect(wr, rr, str, http.StatusTemporaryRedirect)
+
+	} else {
+		wr.Header().Set("Location", "URL not found")
+		wr.WriteHeader(400)
+
 	}
-
-	// Set headers and perform redirect
-	wr.Header().Add("Location", originalURL)
-	wr.WriteHeader(http.StatusTemporaryRedirect)
-
-	// Optional: You can include a message in the response body
-	fmt.Fprintf(wr, "Redirecting to: %s", originalURL)
 }
 
 func main() {
